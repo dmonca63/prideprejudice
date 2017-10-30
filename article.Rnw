@@ -1,0 +1,93 @@
+\documentclass{article}
+\usepackage{natbib}
+
+\begin{document}
+
+\title{Pride and Prejudice Wordcloud}
+\author{Dayana Moncada}
+\maketitle
+
+\begin{abstract}
+In this article we construct a wordcloud, using the tidytext R package, for Jane Austen's Pride and Prejudice novel. This is a replica from my professor Dr. Charles Redmond's work with the Sense and Sensibility's wordcloud using the same packages. I will try to tweak and personalize some codes. Finally, this is a learning experience and comments/questions are deeply appreciated.
+
+\end{abstract}
+
+\textit{Pride and Prejudice} 
+Pride and Prejudice is one of Austen's famous book where she tells the love story between Elizabeth Bennet and Mr. Darcy. For a lot of time, this novel has been considered a classic "must=read". Jane Austen shows us "the folly of judging by first impressions and superbly evokes the friendships, gossip and sobberies of provincial middle-class life."\footnote{Amazon.com}
+
+\section{The Jane Austen Package} 
+This package contains the complete text of Jane Austen’s 6 completed, published novels, formatted to be convenient for text analysis.
+
+<<>>=
+library(janeaustenr)
+pnp<-austen_books()
+@
+
+This dataframe has two columns, one for each line in Austen's novels, and one indicating which book the line is from.  Let's first filter, using dplyr, so that we have only the lines from Pride and Prejudice:
+
+<<warning=FALSE,message=FALSE>>=
+library(dplyr)
+pnp<-pnp%>%
+  filter(book == 'Pride & Prejudice')
+
+head(prideprejudice)
+@
+
+\noindent Now we are ready for some data cleaning.
+
+\section{Some Data Cleaning}
+
+We would like to remove all of the `Chapter' lines.  We can use dplyr again, along with the package stringr.
+
+<<>>=
+library(stringr)
+pnp<-pnp%>%
+  filter(!str_detect(pnp$text,'^CHAPTER'))
+@
+
+Next, we would like to remove the front matter.  By inspection, we have determined that the front matter ends on line 9.  Therefore we can redefine sns to begin on line 10:
+<<>>=
+pnp<-pnp[10:12030,]
+
+@
+
+\section{The Wordcloud}
+To make the wordcloud, we first have to break up the lines into words.  We can use a function from the tidytext package for this:
+
+<<>>=
+library(tidytext)
+words_df<-pnp%>%
+  unnest_tokens(word,text)
+
+words_df
+@
+
+We can remove common, unimportant words with the stop\_words data frame and some dplyr:
+<<>>=
+words_df<-words_df%>%
+  filter(!(word %in% stop_words$word))
+
+words_df
+@
+
+Now, we need to calculate the frequencies of the words in the novel.  Again, we can use standard dplyr techniques for this:
+<<>>=
+word_freq<-words_df%>%
+  group_by(word)%>%
+  summarize(count=n())
+
+word_freq
+@
+
+Finally, it's time to generate the wordcloud:
+<<>>=
+library(wordcloud)
+library(tm)
+wordcloud(word_freq$word,word_freq$count,min.freq=25)
+@
+
+\bibliographystyle{apa}
+\bibliography{article}
+\nocite{*}
+
+\end{document}
